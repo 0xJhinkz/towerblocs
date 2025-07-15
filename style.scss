@@ -1,0 +1,267 @@
+@import url('https://fonts.googleapis.com/css?family=Comfortaa');
+
+$color-dark: #333344;
+
+html, body {
+  margin: 0;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  font-family: 'Comfortaa', cursive;
+}
+
+body {
+  position: relative;
+  background-color: #D0CBC7; /* Default background */
+
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -1; /* Behind all content */
+    transition: background-image 0.3s ease; /* Smooth transition for background changes */
+    pointer-events: none; /* Prevent background from capturing clicks */
+  }
+}
+
+// Welcome Screen Styles with fixes
+#welcome-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 10001; /* Ensure it overlays everything */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto !important;
+  
+  .welcome-container {
+    background-color: #D0CBC7;
+    padding: 40px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    max-width: 400px;
+    width: 100%;
+    z-index: 10002; /* Above the welcome screen */
+    position: relative;
+    pointer-events: auto !important;
+    
+    h1 {
+      color: $color-dark;
+      margin-top: 0;
+      font-size: 32px;
+    }
+    
+    p {
+      color: #555;
+      margin-bottom: 20px;
+    }
+    
+    #welcome-name-input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 2px solid $color-dark;
+      border-radius: 5px;
+      font-size: 16px;
+      box-sizing: border-box;
+      background-color: white;
+      pointer-events: auto !important;
+      position: relative;
+      z-index: 10003;
+    }
+    
+    .wallpaper-selector-wrapper {
+      margin: 10px 0;
+      text-align: center;
+      pointer-events: auto !important;
+      
+      label {
+        font-size: 14px;
+        color: #333;
+        margin-right: 10px;
+      }
+      
+      select {
+        padding: 5px;
+        font-size: 14px;
+        border-radius: 5px;
+        width: 200px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        pointer-events: auto !important;
+      }
+    }
+    
+    #welcome-button-wrapper {
+      position: relative;
+    }
+    
+    #welcome-start-button {
+      background-color: $color-dark;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer !important;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 10004;
+      pointer-events: auto !important;
+      
+      &:hover {
+        background-color: lighten($color-dark, 10%);
+        transform: scale(1.05);
+      }
+    }
+    
+    #direct-click-button {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      z-index: 10005;
+      cursor: pointer;
+      border: none;
+    }
+  }
+}
+
+#container {
+  width: 100%;
+  height: 100%;
+
+  #score {
+    position: absolute;
+    top: 20px;
+    width: 100%;
+    text-align: center;
+    font-size: 10vh;
+    transition: transform 0.5s ease;
+    color: $color-dark;
+    transform: translatey(-200px) scale(1);
+  }
+
+  #game {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1; /* Ensure game is above background */
+  }
+
+  .game-over {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 85%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    * {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      opacity: 0;
+      transform: translatey(-50px);
+      color: $color-dark;
+    }
+
+    h2 {
+      margin: 0;
+      padding: 0;
+      font-size: 40px;
+    }
+  }
+
+  .game-ready {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+
+    #start-button {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      opacity: 0;
+      transform: translatey(-50px);
+      border: 3px solid $color-dark;
+      padding: 10px 20px;
+      background-color: transparent;
+      color: $color-dark;
+      font-size: 30px;
+    }
+  }
+
+  #instructions {
+    position: absolute;
+    width: 100%;
+    top: 16vh;
+    left: 0;
+    text-align: center;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    opacity: 0;
+
+    &.hide {
+      opacity: 0 !important;
+    }
+  }
+
+  &.playing, &.resetting {
+    #score {
+      transform: translatey(0px) scale(1);
+    }
+  }
+
+  &.playing {
+    #instructions {
+      opacity: 1;
+    }
+  }
+
+  &.ready {
+    .game-ready {
+      #start-button {
+        opacity: 1;
+        transform: translatey(0);
+      }
+    }
+  }
+
+  &.ended {
+    #score {
+      transform: translatey(6vh) scale(1.5);
+    }
+
+    .game-over {
+      * {
+        opacity: 1;
+        transform: translatey(0);
+      }
+
+      p {
+        transition-delay: 0.3s;
+      }
+    }
+  }
+}

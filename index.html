@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Blocks with MultiSynq</title>
+    <!-- Audio preloader -->
+    <script src="audio-preloader.js"></script>
+    <!-- App loader -->
+    <script defer src="app-loader.js"></script>
+    <!-- Game scripts -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r83/three.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+    <script defer src="main.js"></script>
+    <!-- MultiSynq integration -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@multisynq/client@0.5.0/bundled/multisynq-client.min.js"></script>
+    <script defer src="multisynq-init.js"></script>
+    <!-- Anime.js -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <!-- Welcome screen handler -->
+    <script defer src="welcome-screen.js"></script>
+    <!-- Styling -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+
+    <div id="welcome-screen">
+        <div class="welcome-container">
+            <h1 id="game-title">Tower Blocks</h1>
+            <p>Enter your name to start playing</p>
+            <input type="text" id="welcome-name-input" placeholder="Your name">
+            <div class="wallpaper-selector-wrapper">
+                <label for="wallpaper-select">Choose Background:</label>
+                <select id="wallpaper-select" onchange="changeWallpaper(event)">
+                    <option value="default">Default (Solid Color)</option>
+                    <option value="mountain-sunset">Mountain Sunset</option>
+                    <option value="tropical-beach">Tropical Beach</option>
+                    <option value="cyberpunk-city">Cyberpunk City</option>
+                    <option value="starry-galaxy">Starry Galaxy</option>
+                    <option value="enchanted-forest">Enchanted Forest</option>
+                </select>
+            </div>
+            <div id="welcome-button-wrapper">
+                <button id="welcome-start-button">Continue</button>
+                <button id="direct-click-button" onclick="startGame(event)"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Controls Placeholder -->
+    <div id="audio-controls"></div>
+
+    <div id="container">
+        <div id="game"></div>
+        <div id="score">0</div>
+        <div id="instructions">Click (or press the spacebar) to place the block</div>
+        <div class="game-over">
+            <h2>Game Over</h2>
+            <p>You did great, you're the best.</p>
+            <p>Click or spacebar to start again</p>
+        </div>
+        <div class="game-ready">
+            <div id="start-button">Start</div>
+            <div></div>
+        </div>
+    </div>
+
+    <div id="multisynq-panel">
+        <div id="multisynq-header">
+            <h3>Tower Blocks By MultiSynq</h3>
+            <button id="multisynq-toggle">▼</button>
+        </div>
+        <div id="multisynq-content">
+            <div style="margin-bottom: 10px;">
+                <label for="playerNameInput" style="font-size: 12px;">Your Name:</label>
+                <input id="playerNameInput" type="text" style="width: 100%; padding: 4px; box-sizing: border-box;">
+            </div>
+            <div class="wallpaper-selector-wrapper">
+                <label for="multisynq-wallpaper-select" style="font-size: 12px;">Background:</label>
+                <select id="multisynq-wallpaper-select">
+                    <option value="default">Default (Solid Color)</option>
+                    <option value="mountain-sunset">Mountain Sunset</option>
+                    <option value="tropical-beach">Tropical Beach</option>
+                    <option value="cyberpunk-city">Cyberpunk City</option>
+                    <option value="starry-galaxy">Starry Galaxy</option>
+                    <option value="enchanted-forest">Enchanted Forest</option>
+                </select>
+            </div>
+            <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-bottom: 8px;">
+                <div style="font-weight: bold; margin-bottom: 5px;">Counter Demo</div>
+                <div id="multisynq-counter">Shared Count: 0</div>
+                <div id="multisynq-controls">
+                    <button id="multisynq-increment">+1</button>
+                    <button id="multisynq-reset">Reset</button>
+                </div>
+            </div>
+            <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-bottom: 8px;">
+                <div style="font-weight: bold; margin-bottom: 5px;">Active Players</div>
+                <ul id="activePlayersList" style="margin: 0; padding-left: 20px; font-size: 12px;">
+                    <li>Loading players...</li>
+                </ul>
+            </div>
+            <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-bottom: 8px;">
+                <div style="font-weight: bold; margin-bottom: 5px;">High Scores</div>
+                <ul id="highScoresList" style="margin: 0; padding-left: 20px; font-size: 12px;">
+                    <li>No scores yet</li>
+                </ul>
+            </div>
+            <div style="border-top: 1px solid #ddd; padding-top: 8px;">
+                <div style="font-weight: bold; margin-bottom: 5px;">Live Events</div>
+                <ul id="eventsList" style="margin: 0; padding-left: 20px; font-size: 12px; max-height: 120px; overflow-y: auto;">
+                    <li>Waiting for events...</li>
+                </ul>
+            </div>
+            <div id="multisynq-status" style="margin-top: 10px; font-size: 11px; text-align: center;">Status: Disconnected</div>
+            <div style="margin-top: 8px; font-size: 12px; text-align: center;">
+                <button onclick="debugMultiSynq()" style="font-size: 10px; padding: 2px 5px;">Debug Connection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global functions
+        window.debugMultiSynq = function() {
+            const status = document.getElementById('multisynq-status');
+            if (typeof Multisynq === 'undefined') {
+                alert('MultiSynq library not loaded!');
+                return;
+            }
+            status.innerHTML = 'Checking connection...';
+            const apiKey = "2l38ff5fgmJ1QFWWBzGcskBDA6o7zo5HHs05AVDAgI";
+            const debugText = `API Key: ${apiKey}\nRoom ID: jhinkz-tower-blocks\nConnection status: ${status.textContent}`;
+            alert(debugText);
+        };
+
+        // Global wallpaper function with improved rendering
+        window.changeWallpaper = function(event) {
+            // Check if event exists
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation(); // Prevent event from reaching game
+            }
+            
+            // Get wallpaper value
+            const wallpaper = event && event.target ? event.target.value : 'default';
+            
+            // Define wallpapers
+            const wallpapers = {
+                'default': 'background-color: #D0CBC7; background-image: none;',
+                'mountain-sunset': 'background-image: url("assets/images/mountain-sunset.png"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;',
+                'tropical-beach': 'background-image: url("assets/images/tropical-beach.png"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;',
+                'cyberpunk-city': 'background-image: url("assets/images/cyberpunk-city.png"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;',
+                'starry-galaxy': 'background-image: url("assets/images/starry-galaxy.png"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;',
+                'enchanted-forest': 'background-image: url("assets/images/enchanted-forest.png"); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed;'
+            };
+            
+            // Clear any existing background before applying new one
+            document.body.style.background = '';
+            document.body.style.backgroundImage = '';
+            document.body.style.backgroundColor = '';
+            
+            // Apply new style with a small delay to ensure proper rendering
+            setTimeout(() => {
+                document.body.setAttribute('style', wallpapers[wallpaper] || wallpapers['default']);
+            }, 50);
+            
+            // Store the preference
+            localStorage.setItem('towerBlocks_background', wallpaper);
+            
+            // Update MultiSynq if available
+            if (window.multisynqClient && window.multisynqClient.models && window.multisynqClient.models.gameState) {
+                window.multisynqClient.models.gameState.trigger("wallpaperChanged", {
+                    wallpaper,
+                    playerName: document.getElementById('playerNameInput')?.value || 'Anonymous'
+                });
+            }
+            
+            // Update selects without triggering events
+            try {
+                const welcomeSelect = document.getElementById('wallpaper-select');
+                const multisynqSelect = document.getElementById('multisynq-wallpaper-select');
+                
+                if (welcomeSelect && welcomeSelect.value !== wallpaper) {
+                    welcomeSelect.value = wallpaper;
+                }
+                if (multisynqSelect && multisynqSelect.value !== wallpaper) {
+                    multisynqSelect.value = wallpaper;
+                }
+            } catch (e) {
+                console.error('Error updating select values:', e);
+            }
+            
+            console.log(`Set wallpaper to: ${wallpaper}`);
+            
+            // Return false to prevent further event propagation
+            return false;
+        };
+        
+        // Load saved wallpaper on page load with improved timing
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedWallpaper = localStorage.getItem('towerBlocks_background') || 'default';
+            
+            // Wait for all images to potentially load before applying background
+            setTimeout(() => {
+                window.changeWallpaper({ 
+                    preventDefault: () => {}, 
+                    stopPropagation: () => {},
+                    target: { value: savedWallpaper }
+                });
+                
+                // Check URL for skip parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('skip') && urlParams.get('skip') === 'true') {
+                    console.log('Skip parameter detected - but skip functionality has been removed');
+                }
+            }, 500); // Increased delay to ensure proper loading
+            
+            // Initialize draggable and minimizable widget
+            initializeWidget();
+            
+            // Initialize bouncy title animation
+            initializeTitleAnimation();
+        });
+
+        // Bouncy title animation
+        function initializeTitleAnimation() {
+            const gameTitle = document.getElementById('game-title');
+            if (!gameTitle || typeof anime === 'undefined') return;
+            
+            // Initial entrance animation
+            anime({
+                targets: gameTitle,
+                scale: [0, 1],
+                opacity: [0, 1],
+                duration: 800,
+                easing: 'easeOutElastic(1, .8)',
+                delay: 300
+            });
+            
+            // Continuous bouncy animation
+            function startBounceAnimation() {
+                anime({
+                    targets: gameTitle,
+                    scale: [1, 1.1, 1],
+                    duration: 2000,
+                    easing: 'easeInOutQuad',
+                    complete: function() {
+                        // Random delay between 3-6 seconds before next bounce
+                        setTimeout(startBounceAnimation, 3000 + Math.random() * 3000);
+                    }
+                });
+            }
+            
+            // Start the bouncy animation after initial entrance
+            setTimeout(startBounceAnimation, 1500);
+        }
+
+        // Widget functionality
+        function initializeWidget() {
+            const panel = document.getElementById('multisynq-panel');
+            const header = document.getElementById('multisynq-header');
+            const toggle = document.getElementById('multisynq-toggle');
+            const content = document.getElementById('multisynq-content');
+            
+            if (!panel || !header || !toggle || !content) return;
+            
+            // Load saved position with anime.js
+            const savedPosition = JSON.parse(localStorage.getItem('towerBlocks_widgetPosition') || '{}');
+            if (savedPosition.x !== undefined && savedPosition.y !== undefined) {
+                if (typeof anime !== 'undefined') {
+                    anime({
+                        targets: panel,
+                        left: savedPosition.x + 'px',
+                        top: savedPosition.y + 'px',
+                        duration: 500,
+                        easing: 'easeOutQuad',
+                        complete: function() {
+                            panel.style.right = 'auto';
+                        }
+                    });
+                } else {
+                    panel.style.left = savedPosition.x + 'px';
+                    panel.style.top = savedPosition.y + 'px';
+                    panel.style.right = 'auto';
+                }
+            }
+            
+            // Load saved collapsed state with anime.js
+            const isCollapsed = localStorage.getItem('towerBlocks_widgetCollapsed') === 'true';
+            if (isCollapsed) {
+                content.classList.add('collapsed');
+                toggle.textContent = '▲';
+                if (typeof anime !== 'undefined') {
+                    anime.set(toggle, { rotate: '180deg' });
+                    anime.set(content, { maxHeight: '0px', opacity: 0 });
+                } else {
+                    toggle.style.transform = 'rotate(180deg)';
+                }
+            }
+            
+            // Make draggable with anime.js
+            let isDragging = false;
+            let dragOffset = { x: 0, y: 0 };
+            let currentAnimation = null;
+            
+            header.addEventListener('mousedown', function(e) {
+                if (e.target === toggle) return; // Don't drag when clicking toggle
+                
+                isDragging = true;
+                const rect = panel.getBoundingClientRect();
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+                
+                // Cancel any existing animation
+                if (currentAnimation) {
+                    currentAnimation.pause();
+                    currentAnimation = null;
+                }
+                
+                document.addEventListener('mousemove', handleDrag);
+                document.addEventListener('mouseup', handleDragEnd);
+                
+                e.preventDefault();
+            });
+            
+            function handleDrag(e) {
+                if (!isDragging) return;
+                
+                const x = e.clientX - dragOffset.x;
+                const y = e.clientY - dragOffset.y;
+                
+                // Keep within window bounds
+                const maxX = window.innerWidth - panel.offsetWidth;
+                const maxY = window.innerHeight - panel.offsetHeight;
+                
+                const constrainedX = Math.max(0, Math.min(x, maxX));
+                const constrainedY = Math.max(0, Math.min(y, maxY));
+                
+                // Use anime.js for smooth movement
+                if (typeof anime !== 'undefined') {
+                    // Cancel previous animation if it exists
+                    if (currentAnimation) {
+                        currentAnimation.pause();
+                    }
+                    
+                    currentAnimation = anime({
+                        targets: panel,
+                        left: constrainedX + 'px',
+                        top: constrainedY + 'px',
+                        duration: 50, // Very short duration for responsive feel
+                        easing: 'easeOutQuad',
+                        complete: function() {
+                            currentAnimation = null;
+                        }
+                    });
+                } else {
+                    // Fallback to direct CSS if anime.js isn't available
+                    panel.style.left = constrainedX + 'px';
+                    panel.style.top = constrainedY + 'px';
+                }
+                
+                panel.style.right = 'auto';
+                
+                e.preventDefault();
+            }
+            
+            function handleDragEnd() {
+                isDragging = false;
+                document.removeEventListener('mousemove', handleDrag);
+                document.removeEventListener('mouseup', handleDragEnd);
+                
+                // Save position
+                localStorage.setItem('towerBlocks_widgetPosition', JSON.stringify({
+                    x: parseInt(panel.style.left),
+                    y: parseInt(panel.style.top)
+                }));
+            }
+            
+            // Minimize/maximize functionality with anime.js
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const isCollapsed = content.classList.contains('collapsed');
+                
+                if (typeof anime !== 'undefined') {
+                    if (isCollapsed) {
+                        // Expand
+                        content.classList.remove('collapsed');
+                        content.style.maxHeight = '0px';
+                        content.style.opacity = '0';
+                        
+                        anime({
+                            targets: content,
+                            maxHeight: '500px',
+                            opacity: 1,
+                            duration: 300,
+                            easing: 'easeOutQuad'
+                        });
+                        
+                        anime({
+                            targets: toggle,
+                            rotate: '0deg',
+                            duration: 300,
+                            easing: 'easeOutQuad'
+                        });
+                        
+                        toggle.textContent = '▼';
+                    } else {
+                        // Collapse
+                        anime({
+                            targets: content,
+                            maxHeight: '0px',
+                            opacity: 0,
+                            duration: 300,
+                            easing: 'easeOutQuad',
+                            complete: function() {
+                                content.classList.add('collapsed');
+                            }
+                        });
+                        
+                        anime({
+                            targets: toggle,
+                            rotate: '180deg',
+                            duration: 300,
+                            easing: 'easeOutQuad'
+                        });
+                        
+                        toggle.textContent = '▲';
+                    }
+                } else {
+                    // Fallback to CSS if anime.js isn't available
+                    content.classList.toggle('collapsed');
+                    const nowCollapsed = content.classList.contains('collapsed');
+                    
+                    if (nowCollapsed) {
+                        toggle.textContent = '▲';
+                        toggle.style.transform = 'rotate(180deg)';
+                    } else {
+                        toggle.textContent = '▼';
+                        toggle.style.transform = 'rotate(0deg)';
+                    }
+                }
+                
+                localStorage.setItem('towerBlocks_widgetCollapsed', (!isCollapsed).toString());
+            });
+            
+            // Prevent widget interactions from affecting game
+            panel.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            panel.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+            });
+            
+            // Add smooth hover effects with anime.js
+            if (typeof anime !== 'undefined') {
+                header.addEventListener('mouseenter', function() {
+                    anime({
+                        targets: header,
+                        backgroundColor: '#444455',
+                        duration: 200,
+                        easing: 'easeOutQuad'
+                    });
+                });
+                
+                header.addEventListener('mouseleave', function() {
+                    anime({
+                        targets: header,
+                        backgroundColor: '#333344',
+                        duration: 200,
+                        easing: 'easeOutQuad'
+                    });
+                });
+                
+                toggle.addEventListener('mouseenter', function() {
+                    anime({
+                        targets: toggle,
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        duration: 200,
+                        easing: 'easeOutQuad'
+                    });
+                });
+                
+                toggle.addEventListener('mouseleave', function() {
+                    anime({
+                        targets: toggle,
+                        backgroundColor: 'rgba(255, 255, 255, 0)',
+                        duration: 200,
+                        easing: 'easeOutQuad'
+                    });
+                });
+            }
+            
+            // Prevent select changes from affecting game
+            const selects = panel.querySelectorAll('select');
+            selects.forEach(select => {
+                select.addEventListener('change', function(e) {
+                    e.stopPropagation();
+                    if (select.id === 'multisynq-wallpaper-select') {
+                        window.changeWallpaper(e);
+                    }
+                });
+                select.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+        }
+    </script>
+</body>
+</html>
