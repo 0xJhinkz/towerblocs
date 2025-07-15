@@ -106,6 +106,19 @@ function createMultiSynqPanel() {
 }
 
 function initMultiSynq() {
+    // Check if MultiSynq library is loaded
+    if (typeof Multisynq === 'undefined') {
+        console.error('MultiSynq library not loaded!');
+        const status = document.getElementById('multisynq-status');
+        if (status) {
+            status.innerHTML = 'Status: Library not loaded';
+            status.style.color = '#ff6b6b';
+        }
+        return;
+    }
+    
+    console.log('MultiSynq library loaded successfully');
+    
     class GameStateModel extends Multisynq.Model {
         init() {
             this.highScores = [];
@@ -187,11 +200,23 @@ function initMultiSynq() {
             var _this = this;
             const incrementButton = document.getElementById("multisynq-increment");
             if (incrementButton) {
-                incrementButton.addEventListener("click", function() { _this.publish(_this.sessionId, "increment"); });
+                incrementButton.addEventListener("click", function() { 
+                    // Play click sound
+                    if (window.clickSoundManager) {
+                        window.clickSoundManager.playClick();
+                    }
+                    _this.publish(_this.sessionId, "increment"); 
+                });
             }
             const resetButton = document.getElementById("multisynq-reset");
             if (resetButton) {
-                resetButton.addEventListener("click", function() { _this.publish(_this.sessionId, "reset"); });
+                resetButton.addEventListener("click", function() { 
+                    // Play click sound
+                    if (window.clickSoundManager) {
+                        window.clickSoundManager.playClick();
+                    }
+                    _this.publish(_this.sessionId, "reset"); 
+                });
             }
         }
         updateDisplay(count) {
@@ -313,6 +338,58 @@ function initMultiSynq() {
     }
     const statusDisplay = document.getElementById('multisynq-status');
     if (statusDisplay) {
+        statusDisplay.innerHTML = 'Status: Connecting...';
+    }
+    
+    try {
+        const apiKey = "2l38ff5fgmJ1QFWWBzGcskBDA6o7zo5HHs05AVDAgI";
+        const roomId = "jhinkz-tower-blocks";
+        
+        const client = new Multisynq.Client(apiKey, roomId);
+        
+        // Initialize models
+        const gameStateModel = client.model('gameState', GameStateModel);
+        const counterModel = client.model('counter', CounterModel);
+        
+        // Initialize views
+        const gameStateView = new GameStateView(gameStateModel);
+        const counterView = new CounterView(counterModel);
+        
+        // Store client globally for access from other parts of the app
+        window.multisynqClient = client;
+        
+        // Update status on connection
+        client.on('connected', () => {
+            console.log('Connected to MultiSynq');
+            if (statusDisplay) {
+                statusDisplay.innerHTML = 'Status: Connected';
+                statusDisplay.style.color = '#4CAF50';
+            }
+        });
+        
+        client.on('disconnected', () => {
+            console.log('Disconnected from MultiSynq');
+            if (statusDisplay) {
+                statusDisplay.innerHTML = 'Status: Disconnected';
+                statusDisplay.style.color = '#f44336';
+            }
+        });
+        
+        client.on('error', (error) => {
+            console.error('MultiSynq error:', error);
+            if (statusDisplay) {
+                statusDisplay.innerHTML = 'Status: Error';
+                statusDisplay.style.color = '#f44336';
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error initializing MultiSynq:', error);
+        if (statusDisplay) {
+            statusDisplay.innerHTML = 'Status: Initialization failed';
+            statusDisplay.style.color = '#f44336';
+        }
+    }
         statusDisplay.textContent = 'Status: Connecting...';
     }
     console.log("Connecting to MultiSynq...");
@@ -341,7 +418,6 @@ function initMultiSynq() {
         }
         window.debugMultiSynq = function() { return { error, connected: false }; };
     });
-}
 
 function setupPanelToggle() {
     const toggleButton = document.getElementById('multisynq-toggle');

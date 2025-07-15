@@ -75,6 +75,25 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const musicEnabled = localStorage.getItem('towerBlocks_musicEnabled') !== 'false';
             
+            // Add user interaction flag
+            let hasUserInteracted = false;
+            
+            // Function to enable audio after user interaction
+            function enableAudioAfterInteraction() {
+                if (!hasUserInteracted) {
+                    hasUserInteracted = true;
+                    if (musicEnabled && backgroundMusic.paused) {
+                        backgroundMusic.play().catch(e => {
+                            console.log('Music autoplay prevented by browser policy');
+                        });
+                    }
+                }
+            }
+            
+            // Add event listeners for user interaction
+            document.addEventListener('click', enableAudioAfterInteraction, { once: true });
+            document.addEventListener('keydown', enableAudioAfterInteraction, { once: true });
+            
             document.body.appendChild(backgroundMusic);
             
             const audioControls = document.getElementById('audio-controls');
@@ -120,6 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
             function toggleMusic(event) {
                 event.preventDefault();
                 event.stopPropagation();
+                
+                // Play click sound
+                if (window.clickSoundManager) {
+                    window.clickSoundManager.playClick();
+                }
                 
                 if (backgroundMusic.paused) {
                     backgroundMusic.play().catch(e => console.error('Music playback failed:', e));
@@ -271,6 +295,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Click event for continue button
             welcomeStartButton.addEventListener('click', function(event) {
                 console.log('Continue button clicked');
+                // Play click sound
+                if (window.clickSoundManager) {
+                    window.clickSoundManager.playClick();
+                }
                 startGame(event);
             });
             
@@ -295,9 +323,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Load saved wallpaper
             const savedWallpaper = localStorage.getItem('towerBlocks_background') || 'default';
-            if (bgSelect) {
-                bgSelect.value = savedWallpaper;
-                changeWallpaper({ 
+            // Apply saved wallpaper (bgSelect removed from welcome screen)
+            if (window.changeWallpaper) {
+                window.changeWallpaper({ 
                     preventDefault: () => {}, 
                     stopPropagation: () => {},
                     target: { value: savedWallpaper }

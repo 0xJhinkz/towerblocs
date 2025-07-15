@@ -97,7 +97,7 @@ var Block = /** @class */ (function () {
         // create block
         var geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
         geometry.translate(this.dimension.width / 2, this.dimension.height / 2, this.dimension.depth / 2);
-        this.material = new THREE.MeshLambertMaterial({ color: this.color, flatShading: true });
+        this.material = new THREE.MeshLambertMaterial({ color: this.color, flatShading: THREE.FlatShading });
         this.mesh = new THREE.Mesh(geometry, this.material);
         this.mesh.position.set(this.position.x, this.position.y + (this.state == this.STATES.ACTIVE ? 0 : 0), this.position.z);
         if (this.state == this.STATES.ACTIVE) {
@@ -199,7 +199,15 @@ var Game = /** @class */ (function () {
                 _this.onAction();
         });
         document.addEventListener('click', function (e) {
-            _this.onAction();
+            // Only handle game actions if not clicking on UI elements
+            if (!e.target.closest('#multisynq-panel') && 
+                !e.target.closest('#audio-controls') && 
+                !e.target.closest('#retry-button') &&
+                !e.target.closest('.game-over-backdrop') &&
+                !e.target.closest('.game-over') &&
+                !e.target.closest('#welcome-screen')) {
+                _this.onAction();
+            }
         });
         document.addEventListener('touchstart', function (e) {
             e.preventDefault();
@@ -217,13 +225,21 @@ var Game = /** @class */ (function () {
     Game.prototype.onAction = function () {
         switch (this.state) {
             case this.STATES.READY:
+                // Play click sound for start
+                if (window.clickSoundManager) {
+                    window.clickSoundManager.playClick();
+                }
                 this.startGame();
                 break;
             case this.STATES.PLAYING:
+                // Play block placement sound
+                if (window.clickSoundManager) {
+                    window.clickSoundManager.playBlockPlace();
+                }
                 this.placeBlock();
                 break;
             case this.STATES.ENDED:
-                this.restartGame();
+                // Don't auto-restart on any click - only through retry button
                 break;
         }
     };
@@ -318,10 +334,34 @@ var Game = /** @class */ (function () {
             this.instructions.classList.add('hide');
     };
     Game.prototype.endGame = function () {
+        var _this = this;
         this.updateState(this.STATES.ENDED);
+        
+        // Play game over sound
+        if (window.clickSoundManager) {
+            window.clickSoundManager.playGameOver();
+        }
         
         // Get final score
         const finalScore = parseInt(this.scoreContainer.innerHTML);
+        
+        // Update final score display
+        const finalScoreElement = document.getElementById('final-score');
+        if (finalScoreElement) {
+            finalScoreElement.textContent = finalScore;
+        }
+        
+        // Set up retry button
+        const retryButton = document.getElementById('retry-button');
+        if (retryButton) {
+            retryButton.onclick = function() {
+                // Play click sound
+                if (window.clickSoundManager) {
+                    window.clickSoundManager.playClick();
+                }
+                _this.restartGame();
+            };
+        }
         
         // Notify MultiSynq about game end (using a custom event)
         var gameOverEvent = new CustomEvent('gameOver', { 

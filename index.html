@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tower Blocks with MultiSynq</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏗️%3C/text%3E%3C/svg%3E" type="image/svg+xml">
     <!-- Audio preloader -->
     <script src="audio-preloader.js"></script>
+    <!-- Click sound manager -->
+    <script src="click-sound.js"></script>
     <!-- App loader -->
     <script defer src="app-loader.js"></script>
     <!-- Game scripts -->
@@ -13,7 +17,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
     <script defer src="main.js"></script>
     <!-- MultiSynq integration -->
-    <script defer src="https://cdn.jsdelivr.net/npm/@multisynq/client@0.5.0/bundled/multisynq-client.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest"></script>
     <script defer src="multisynq-init.js"></script>
     <!-- Anime.js -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
@@ -30,17 +34,6 @@
             <h1 id="game-title">Tower Blocks</h1>
             <p>Enter your name to start playing</p>
             <input type="text" id="welcome-name-input" placeholder="Your name">
-            <div class="wallpaper-selector-wrapper">
-                <label for="wallpaper-select">Choose Background:</label>
-                <select id="wallpaper-select" onchange="changeWallpaper(event)">
-                    <option value="default">Default (Solid Color)</option>
-                    <option value="mountain-sunset">Mountain Sunset</option>
-                    <option value="tropical-beach">Tropical Beach</option>
-                    <option value="cyberpunk-city">Cyberpunk City</option>
-                    <option value="starry-galaxy">Starry Galaxy</option>
-                    <option value="enchanted-forest">Enchanted Forest</option>
-                </select>
-            </div>
             <div id="welcome-button-wrapper">
                 <button id="welcome-start-button">Continue</button>
                 <button id="direct-click-button" onclick="startGame(event)"></button>
@@ -55,10 +48,12 @@
         <div id="game"></div>
         <div id="score">0</div>
         <div id="instructions">Click (or press the spacebar) to place the block</div>
+        <div class="game-over-backdrop"></div>
         <div class="game-over">
             <h2>Game Over</h2>
             <p>You did great, you're the best.</p>
-            <p>Click or spacebar to start again</p>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="retry-button">Play Again</button>
         </div>
         <div class="game-ready">
             <div id="start-button">Start</div>
@@ -125,12 +120,13 @@
         window.debugMultiSynq = function() {
             const status = document.getElementById('multisynq-status');
             if (typeof Multisynq === 'undefined') {
-                alert('MultiSynq library not loaded!');
+                console.error('MultiSynq library not loaded!');
+                alert('MultiSynq library not loaded! Please check your internet connection and try refreshing the page.');
                 return;
             }
             status.innerHTML = 'Checking connection...';
             const apiKey = "2l38ff5fgmJ1QFWWBzGcskBDA6o7zo5HHs05AVDAgI";
-            const debugText = `API Key: ${apiKey}\nRoom ID: jhinkz-tower-blocks\nConnection status: ${status.textContent}`;
+            const debugText = `API Key: ${apiKey}\nRoom ID: jhinkz-tower-blocks\nConnection status: ${status.textContent}\nMultiSynq version: ${Multisynq.version || 'unknown'}`;
             alert(debugText);
         };
 
@@ -382,6 +378,11 @@
                 e.preventDefault();
                 e.stopPropagation();
                 
+                // Play click sound
+                if (window.clickSoundManager) {
+                    window.clickSoundManager.playClick();
+                }
+                
                 const isCollapsed = content.classList.contains('collapsed');
                 
                 if (typeof anime !== 'undefined') {
@@ -499,6 +500,10 @@
             selects.forEach(select => {
                 select.addEventListener('change', function(e) {
                     e.stopPropagation();
+                    // Play click sound
+                    if (window.clickSoundManager) {
+                        window.clickSoundManager.playClick();
+                    }
                     if (select.id === 'multisynq-wallpaper-select') {
                         window.changeWallpaper(e);
                     }
